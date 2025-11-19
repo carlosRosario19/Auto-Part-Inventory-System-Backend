@@ -1,0 +1,105 @@
+﻿using AutoMapper;
+using AutoPartInventorySystem.DTOs;
+using AutoPartInventorySystem.Models;
+using AutoPartInventorySystem.Repositories.Contracts;
+using AutoPartInventorySystem.Services.Contracts;
+using AutoPartInventorySystem.Util;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+namespace AutoPartInventorySystem.Services.Implementations
+{
+    public class UserService : IUserService
+    {
+        private readonly IUserRepository _userRepository;
+        private readonly IRoleRepository _roleRepository;
+        private readonly IConfiguration _configuration;
+        private readonly PasswordHasher _passwordHasher;
+        private readonly IMapper _mapper;
+
+        public UserService(
+            IUserRepository userRepository,
+            IRoleRepository roleRepository,
+            IConfiguration configuration, 
+            PasswordHasher passwordHasher,
+            IMapper mapper)
+        {
+            _userRepository = userRepository;
+            _roleRepository = roleRepository;
+            _configuration = configuration;
+            _passwordHasher = passwordHasher;
+            _mapper = mapper;
+        }
+
+        public async Task<bool> AddAsync(AddUserDto addUserDto)
+        {
+            // 1) Check if email already exists
+            var existingUser = await _userRepository.GetByEmailAsync(addUserDto.Email);
+            if (existingUser != null)
+            {
+                return false; // email already taken
+            }
+
+            // 2) Map DTO → Entity using AutoMapper
+            var user = _mapper.Map<User>(addUserDto);
+
+            // 3) Hash the password manually
+            user.PasswordHash = _passwordHasher.Hash(addUserDto.Password);
+
+            // Assign staff role by default
+            var staffRole = await _roleRepository.GetByNameAsync("staff");
+            if (staffRole != null)
+                user.Roles.Add(staffRole);
+
+            // 4) Save user
+            await _userRepository.AddAsync(user);
+
+            return true;
+        }
+
+        public async Task<string?> LoginAsync(LoginDto loginDto)
+        {
+            // 1) Get user by email
+            var user = await _userRepository.GetByEmailAsync(loginDto.Email);
+
+            if (user == null)
+                return null;
+
+            // 2) Verify password
+            bool valid = _passwordHasher.Verify(loginDto.Password, user.PasswordHash);
+            if (!valid)
+                return null;
+
+            // 3) Create JWT token
+            var jwtKey = _configuration["Jwt:Key"];
+            var jwtIssuer = _configuration["Jwt:Issuer"];
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email)
+            };
+
+            // Add roles (optional)
+            foreach (var role in user.Roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role.Name));
+            }
+
+            var token = new JwtSecurityToken(
+                issuer: jwtIssuer,
+                audience: null,
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(12),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+    }
+}
