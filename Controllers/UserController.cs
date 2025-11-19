@@ -1,5 +1,6 @@
 ﻿using AutoPartInventorySystem.DTOs;
 using AutoPartInventorySystem.Services.Contracts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartInventorySystem.Controllers
@@ -15,8 +16,9 @@ namespace AutoPartInventorySystem.Controllers
             _userService = userService;
         }
 
-        [HttpPost("signup")]
-        public async Task<IActionResult> Signup([FromBody] AddUserDto dto)
+        [HttpPost("add-staff")]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> AddStaff([FromBody] AddUserDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -29,7 +31,7 @@ namespace AutoPartInventorySystem.Controllers
                 return Conflict(new { message = "Email already exists." });
             }
 
-            return CreatedAtAction(nameof(Signup), new { email = dto.Email }, new { message = "User created successfully." });
+            return CreatedAtAction(nameof(AddStaff), new { email = dto.Email }, new { message = "User created successfully." });
         }
 
         [HttpPost("login")]
