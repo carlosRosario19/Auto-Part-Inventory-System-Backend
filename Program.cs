@@ -1,4 +1,8 @@
 
+using Amazon;
+using Amazon.DynamoDBv2;
+using Amazon.Extensions.NETCore.Setup;
+using Amazon.S3;
 using AutoPartInventorySystem.Data;
 using AutoPartInventorySystem.Profiles;
 using AutoPartInventorySystem.Repositories.Contracts;
@@ -8,7 +12,6 @@ using AutoPartInventorySystem.Services.Implementations;
 using AutoPartInventorySystem.Util;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -31,6 +34,28 @@ namespace AutoPartInventorySystem
                            .AllowAnyMethod();
                 });
             });
+
+            // ---------------------------------------------------
+            // Load Parameter Store *only in Production*
+            // ---------------------------------------------------
+            if (builder.Environment.IsProduction())
+            {
+                builder.Configuration.AddSystemsManager(
+                    "/auto_part_inventory_api",
+                    new AWSOptions
+                    {
+                        Region = RegionEndpoint.USEast1
+                    }
+                );
+
+                Console.WriteLine(">>> Environment: Production");
+                Console.WriteLine(">>> DefaultConnection: " + builder.Configuration.GetConnectionString("DefaultConnection"));
+            }
+            else
+            {
+                var awsOptions = builder.Configuration.GetAWSOptions();
+                builder.Services.AddDefaultAWSOptions(awsOptions);
+            }
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -67,6 +92,41 @@ namespace AutoPartInventorySystem
             });
 
             // ---------------------------------------------------
+            // 3. Register services
+            // ---------------------------------------------------
+            builder.Services.AddSingleton<IAmazonS3>(sp =>
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+                var awsSection = config.GetSection("AWS");
+                var accessKey = awsSection["AccessKey"];
+                var secretKey = awsSection["SecretKey"];
+                var region = awsSection["Region"];
+
+                var amazonConfig = new AmazonS3Config
+                {
+                    RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(region)
+                };
+
+                return new AmazonS3Client(accessKey, secretKey, amazonConfig);
+            });
+
+            builder.Services.AddSingleton<IAmazonDynamoDB>(sp =>
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+                var awsSection = config.GetSection("AWS");
+                var accessKey = awsSection["AccessKey"];
+                var secretKey = awsSection["SecretKey"];
+                var region = awsSection["Region"];
+
+                var amazonConfig = new AmazonDynamoDBConfig
+                {
+                    RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(region)
+                };
+
+                return new AmazonDynamoDBClient(accessKey, secretKey, amazonConfig);
+            });
+
+            // ---------------------------------------------------
             // Configure EF Core (ConnectionString will come from appsettings or Parameter Store)
             // ---------------------------------------------------
 
@@ -98,10 +158,13 @@ namespace AutoPartInventorySystem
 
             // Add services
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
+            builder.Services.AddScoped<IStorageService, S3StorageService>();
 
             // Add repositories
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
             // Add Utils
             builder.Services.AddSingleton<PasswordHasher>();

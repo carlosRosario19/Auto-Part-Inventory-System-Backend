@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoPartInventorySystem.DTOs;
+using AutoPartInventorySystem.DTOs.User;
 using AutoPartInventorySystem.Models;
 
 namespace AutoPartInventorySystem.Profiles

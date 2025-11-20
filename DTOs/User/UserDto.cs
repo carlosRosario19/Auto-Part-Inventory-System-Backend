@@ -1,4 +1,4 @@
-﻿namespace AutoPartInventorySystem.DTOs
+﻿namespace AutoPartInventorySystem.DTOs.User
 {
     public class UserDTO
     {

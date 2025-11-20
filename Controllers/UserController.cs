@@ -1,4 +1,5 @@
 ﻿using AutoPartInventorySystem.DTOs;
+using AutoPartInventorySystem.DTOs.User;
 using AutoPartInventorySystem.Services.Contracts;
 using AutoPartInventorySystem.Util;
 using Microsoft.AspNetCore.Authorization;
@@ -17,7 +18,7 @@ namespace AutoPartInventorySystem.Controllers
             _userService = userService;
         }
 
-        [HttpPost("add-staff")]
+        [HttpPost]
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> AddStaff([FromBody] AddUserDto dto)
         {
@@ -76,7 +77,7 @@ namespace AutoPartInventorySystem.Controllers
             return NoContent();
         }
 
-        [HttpGet("get-users")]
+        [HttpGet]
         [Authorize(Roles = "admin")]
         public async Task<ActionResult<PagedResult<UserDTO>>> GetAllUsers(int pageNumber = 1,int pageSize = 10)
         {
@@ -84,7 +85,7 @@ namespace AutoPartInventorySystem.Controllers
             return Ok(result);
         }
 
-        [HttpGet("get-user/{id}")]
+        [HttpGet("{id}")]
         [Authorize(Roles = "admin")]
         public async Task<ActionResult<UserDTO>> GetUser([FromRoute] int  id)
         {
@@ -96,7 +97,7 @@ namespace AutoPartInventorySystem.Controllers
             return Ok(user);
         } 
 
-        [HttpDelete("delete-user/{id}")]
+        [HttpDelete("{id}")]
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteUser([FromRoute] int id)
         {
@@ -108,7 +109,7 @@ namespace AutoPartInventorySystem.Controllers
             return NoContent();
         }
 
-        [HttpPatch("promote/{id}")]
+        [HttpPatch("{id}")]
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> PromoteToAdmin([FromRoute] int id)
         {
