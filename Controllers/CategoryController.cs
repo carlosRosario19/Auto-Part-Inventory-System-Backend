@@ -71,7 +71,7 @@ namespace AutoPartInventorySystem.Controllers
             return Ok("Category deleted successfully.");
         }
 
-        // PATCH: api/category/update-image
+        // PATCH: api/category
         [HttpPatch("update-image")]
         [Authorize(Roles = "staff,admin")]
         public async Task<IActionResult> UpdateImage([FromForm] UpdateCategoryImageDto dto)
