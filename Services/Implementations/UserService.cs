@@ -101,5 +101,31 @@ namespace AutoPartInventorySystem.Services.Implementations
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+        public async Task<UpdateUserResult> UpdateAsync(UpdateUserDto updateUserDto)
+        {
+            //Validate the user exists
+            // 1) Validate that the user exists
+            var user = await _userRepository.GetByIdAsync(updateUserDto.Id);
+            if (user == null)
+                return UpdateUserResult.NotFound;
+
+            // 2) Check if the new email is already taken by someone else
+            var existingUserWithEmail = await _userRepository.GetByEmailAsync(updateUserDto.Email);
+            if (existingUserWithEmail != null && existingUserWithEmail.Id != user.Id)
+                return UpdateUserResult.EmailAlreadyExists;
+
+
+            // 3) AutoMapper
+            _mapper.Map(updateUserDto, user);
+
+            // 4) Hash the new password
+            user.PasswordHash = _passwordHasher.Hash(updateUserDto.Password);
+
+            // 5) Update the user
+            await _userRepository.UpdateAsync(user);
+
+            return UpdateUserResult.Success;
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoPartInventorySystem.DTOs;
 using AutoPartInventorySystem.Services.Contracts;
+using AutoPartInventorySystem.Util;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,6 +50,30 @@ namespace AutoPartInventorySystem.Controllers
             }
 
             return Ok(new { token });
+        }
+
+        [HttpPut("update-staff")]
+        [Authorize(Roles = "staff,admin")]
+        public async Task<IActionResult> UpdateStaff([FromBody] UpdateUserDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _userService.UpdateAsync(dto);
+
+            if (result == UpdateUserResult.NotFound)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            if (result == UpdateUserResult.EmailAlreadyExists)
+            {
+                return Conflict(new { message = "Email already belongs to another user." });
+            }
+
+            return NoContent();
         }
     }
 }

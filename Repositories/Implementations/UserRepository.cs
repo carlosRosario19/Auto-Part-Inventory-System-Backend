@@ -25,5 +25,18 @@ namespace AutoPartInventorySystem.Repositories.Implementations
                 .Include(u => u.Roles)        // include roles for JWT claims
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
+
+        public async Task<User?> GetByIdAsync(int id)
+        {
+            return await _context.Users
+                .Include(u => u.Roles)
+                .FirstOrDefaultAsync(u => u.Id == id);
+        }
+
+        public async Task UpdateAsync(User user)
+        {
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        }
     }
 }
