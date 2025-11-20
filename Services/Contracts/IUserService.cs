@@ -8,5 +8,6 @@ namespace AutoPartInventorySystem.Services.Contracts
         Task<string?> LoginAsync(LoginDto loginDto);
         Task<bool> AddAsync(AddUserDto addUserDto);
         Task<UpdateUserResult> UpdateAsync(UpdateUserDto updateUserDto);
+        Task<PagedResult<UserDTO>> GetAllUsersAsync(int pageNumber, int pageSize);
     }
 }

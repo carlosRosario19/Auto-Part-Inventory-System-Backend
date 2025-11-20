@@ -19,6 +19,23 @@ namespace AutoPartInventorySystem.Repositories.Implementations
             await _context.SaveChangesAsync();
         }
 
+        public async Task<(IEnumerable<User> Users, int TotalCount)> GetAllUsersPagedAsync(int pageNumber, int pageSize)
+        {
+            var query = _context.Users
+                .Include(u => u.Roles)
+                .AsQueryable();
+
+            var totalCount = await query.CountAsync();
+
+            var users = await query
+                .OrderBy(u => u.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (users, totalCount);
+        }
+
         public async Task<User?> GetByEmailAsync(string email)
         {
             return await _context.Users

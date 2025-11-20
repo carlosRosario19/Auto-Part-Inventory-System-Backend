@@ -75,5 +75,15 @@ namespace AutoPartInventorySystem.Controllers
 
             return NoContent();
         }
+
+        [HttpGet("get-users")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<PagedResult<UserDTO>>> GetAllUsers(int pageNumber = 1,int pageSize = 10)
+        {
+            var result = await _userService.GetAllUsersAsync(pageNumber, pageSize);
+            return Ok(result);
+        }
+
+
     }
 }

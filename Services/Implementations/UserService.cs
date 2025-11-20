@@ -59,6 +59,21 @@ namespace AutoPartInventorySystem.Services.Implementations
             return true;
         }
 
+        public async Task<PagedResult<UserDTO>> GetAllUsersAsync(int pageNumber, int pageSize)
+        {
+            var (users, totalCount) = await _userRepository.GetAllUsersPagedAsync(pageNumber, pageSize);
+
+            var userDtos = _mapper.Map<IEnumerable<UserDTO>>(users);
+
+            return new PagedResult<UserDTO>
+            {
+                Items = userDtos,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+
         public async Task<string?> LoginAsync(LoginDto loginDto)
         {
             // 1) Get user by email
