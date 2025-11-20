@@ -1,4 +1,7 @@
-﻿-- ==========================================================
+﻿ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = OFF;
+GO
+
+-- ==========================================================
 -- Drop ALL Foreign Key Constraints (to avoid dependency issues)
 -- ==========================================================
 DECLARE @sql NVARCHAR(MAX) = N'';

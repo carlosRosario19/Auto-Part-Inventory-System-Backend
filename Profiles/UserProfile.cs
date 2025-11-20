@@ -11,6 +11,14 @@ namespace AutoPartInventorySystem.Profiles
             CreateMap<AddUserDto, User>()
                 .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
+
+            CreateMap<UpdateUserDto, User>()
+                .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
+                .ForMember(dest => dest.Roles, opt => opt.Ignore());
+
+            CreateMap<User, UserDTO>()
+                .ForMember(dest => dest.Roles,
+                opt => opt.MapFrom(src => src.Roles.Select(r => r.Name).ToList()));
         }
     }
 }
