@@ -84,6 +84,28 @@ namespace AutoPartInventorySystem.Controllers
             return Ok(result);
         }
 
+        [HttpGet("get-user/{id}")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<UserDTO>> GetUser([FromRoute] int  id)
+        {
+            var user = await _userService.GetUserByIdAsync(id);
 
+            if (user == null)
+                return NotFound(new { message = "User not found." });
+
+            return Ok(user);
+        } 
+
+        [HttpDelete("delete-user/{id}")]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> DeleteUser([FromRoute] int id)
+        {
+            var deleted = await _userService.DeleteAsync(id);
+
+            if (!deleted)
+                return NotFound(new { message = "User not found" });
+
+            return NoContent();
+        }
     }
 }

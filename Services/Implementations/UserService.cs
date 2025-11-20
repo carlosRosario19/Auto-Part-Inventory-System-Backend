@@ -59,6 +59,20 @@ namespace AutoPartInventorySystem.Services.Implementations
             return true;
         }
 
+        public async Task<bool> DeleteAsync(int id)
+        {
+            // Check if user exists
+            var user = await _userRepository.GetByIdAsync(id);
+
+            if (user == null)
+                return false;
+
+            // Proceed to delete
+            await _userRepository.DeleteAsync(user);
+
+            return true;
+        }
+
         public async Task<PagedResult<UserDTO>> GetAllUsersAsync(int pageNumber, int pageSize)
         {
             var (users, totalCount) = await _userRepository.GetAllUsersPagedAsync(pageNumber, pageSize);
@@ -72,6 +86,16 @@ namespace AutoPartInventorySystem.Services.Implementations
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
+        }
+
+        public async Task<UserDTO?> GetUserByIdAsync(int id)
+        {
+            var user = await _userRepository.GetByIdAsync(id);
+
+            if (user == null)
+                return null;
+
+            return _mapper.Map<UserDTO>(user);
         }
 
         public async Task<string?> LoginAsync(LoginDto loginDto)

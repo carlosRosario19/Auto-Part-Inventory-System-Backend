@@ -9,5 +9,6 @@ namespace AutoPartInventorySystem.Repositories.Contracts
         Task<User?> GetByIdAsync(int id);
         Task UpdateAsync(User user);
         Task<(IEnumerable<User> Users, int TotalCount)> GetAllUsersPagedAsync(int pageNumber, int pageSize);
+        Task DeleteAsync(User user);
     }
 }

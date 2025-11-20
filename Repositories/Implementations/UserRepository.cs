@@ -19,6 +19,12 @@ namespace AutoPartInventorySystem.Repositories.Implementations
             await _context.SaveChangesAsync();
         }
 
+        public async Task DeleteAsync(User user)
+        {
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<(IEnumerable<User> Users, int TotalCount)> GetAllUsersPagedAsync(int pageNumber, int pageSize)
         {
             var query = _context.Users
