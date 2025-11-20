@@ -1,4 +1,5 @@
-﻿using AutoPartInventorySystem.DTOs.Category;
+﻿using AutoMapper;
+using AutoPartInventorySystem.DTOs.Category;
 using AutoPartInventorySystem.Models;
 using AutoPartInventorySystem.Repositories.Contracts;
 using AutoPartInventorySystem.Services.Contracts;
@@ -10,15 +11,18 @@ namespace AutoPartInventorySystem.Services.Implementations
         private readonly ICategoryRepository _categoryRepository;
         private readonly IStorageService _storageService;
         private readonly IConfiguration _configuration;
+        private readonly IMapper _mapper;
 
         public CategoryService(
             ICategoryRepository categoryRepository, 
             IStorageService storageService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IMapper mapper)
         {
             _categoryRepository = categoryRepository;
             _storageService = storageService;
             _configuration = configuration;
+            _mapper = mapper;
         }
 
         public async Task<bool> AddAsync(AddCategoryDto dto)
@@ -37,13 +41,9 @@ namespace AutoPartInventorySystem.Services.Implementations
 
             if (!uploaded) return false;
 
-            string imageUrl = $"https://{bucketName}.s3.amazonaws.com/{key}";
-
-            var category = new Category
-            {
-                Name = dto.Name,
-                ImageUrl = imageUrl
-            };
+            // Map dto to entity
+            var category = _mapper.Map<Category>(dto);
+            category.ImageUrl = $"https://{bucketName}.s3.amazonaws.com/{key}";
 
             await _categoryRepository.AddAsync(category);
             return true;
@@ -71,29 +71,13 @@ namespace AutoPartInventorySystem.Services.Implementations
         public async Task<List<CategoryDto>> GetAllCategoriesAsync()
         {
             var categories = await _categoryRepository.GetAllAsync();
-
-            return categories
-                .Select(c => new CategoryDto
-                {
-                    CategoryId = c.CategoryId,
-                    Name = c.Name,
-                    ImageUrl = c.ImageUrl
-                })
-                .ToList();
+            return _mapper.Map<List<CategoryDto>>(categories);
         }
 
         public async Task<CategoryDto?> GetCategoryByIdAsync(int id)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
-            if (category == null)
-                return null;
-
-            return new CategoryDto
-            {
-                CategoryId = category.CategoryId,
-                Name = category.Name,
-                ImageUrl = category.ImageUrl
-            };
+            return category == null ? null : _mapper.Map<CategoryDto>(category);
         }
 
         public async Task<bool> UpdateAsync(UpdateCategoryDto dto)
@@ -102,31 +86,28 @@ namespace AutoPartInventorySystem.Services.Implementations
             if (category == null)
                 return false;
 
-            // If there's a new image, replace it
+            // Map name (AutoMapper)
+            _mapper.Map(dto, category);
+
+            string bucket = _configuration["AWS:BucketName"]!;
+
+            // If new image is provided, replace it
             if (dto.Image != null)
             {
-                string bucketName = _configuration["AWS:BucketName"]!;
-
-                // Delete the old image if it exists
                 if (!string.IsNullOrWhiteSpace(category.ImageUrl))
                 {
                     string oldKey = ExtractKeyFromUrl(category.ImageUrl);
-                    await _storageService.DeleteObjectAsync(bucketName, oldKey);
+                    await _storageService.DeleteObjectAsync(bucket, oldKey);
                 }
 
-                // Upload the new image
                 string newKey = $"categories/{Guid.NewGuid()}_{dto.Image.FileName}";
                 using var stream = dto.Image.OpenReadStream();
-                var uploaded = await _storageService.AddObjectAsync(bucketName, newKey, stream);
 
-                if (!uploaded)
+                if (!await _storageService.AddObjectAsync(bucket, newKey, stream))
                     return false;
 
-                category.ImageUrl = $"https://{bucketName}.s3.amazonaws.com/{newKey}";
+                category.ImageUrl = $"https://{bucket}.s3.amazonaws.com/{newKey}";
             }
-
-            // Update name
-            category.Name = dto.Name;
 
             await _categoryRepository.UpdateAsync(category);
             return true;
@@ -138,28 +119,24 @@ namespace AutoPartInventorySystem.Services.Implementations
             if (category == null)
                 return false;
 
-            string bucketName = _configuration["AWS:BucketName"]!;
+            string bucket = _configuration["AWS:BucketName"]!;
 
-            // Delete old image if it exists
             if (!string.IsNullOrWhiteSpace(category.ImageUrl))
             {
                 string oldKey = ExtractKeyFromUrl(category.ImageUrl);
-                await _storageService.DeleteObjectAsync(bucketName, oldKey);
+                await _storageService.DeleteObjectAsync(bucket, oldKey);
             }
 
-            // Upload new image
             string newKey = $"categories/{Guid.NewGuid()}_{dto.Image.FileName}";
             using var stream = dto.Image.OpenReadStream();
-            var uploaded = await _storageService.AddObjectAsync(bucketName, newKey, stream);
 
-            if (!uploaded)
+            if (!await _storageService.AddObjectAsync(bucket, newKey, stream))
                 return false;
 
-            // Update database entity with new URL
-            category.ImageUrl = $"https://{bucketName}.s3.amazonaws.com/{newKey}";
+            category.ImageUrl = $"https://{bucket}.s3.amazonaws.com/{newKey}";
 
             await _categoryRepository.UpdateAsync(category);
-            return true;
+            return true;    
         }
 
         // Helper to convert S3 URL -> key

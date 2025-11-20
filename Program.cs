@@ -160,11 +160,13 @@ namespace AutoPartInventorySystem
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IStorageService, S3StorageService>();
+            builder.Services.AddScoped<IBrandService,  BrandService>();
 
             // Add repositories
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IRoleRepository, RoleRepository>();
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 
             // Add Utils
             builder.Services.AddSingleton<PasswordHasher>();
