@@ -1,4 +1,5 @@
 ﻿using AutoPartInventorySystem.DTOs;
+using AutoPartInventorySystem.DTOs.User;
 using AutoPartInventorySystem.Util;
 
 namespace AutoPartInventorySystem.Services.Contracts
