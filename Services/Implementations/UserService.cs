@@ -141,6 +141,26 @@ namespace AutoPartInventorySystem.Services.Implementations
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        public async Task<bool> PromoteToAdminAsync(int id)
+        {
+            // Find the user
+            var user = await _userRepository.GetByIdAsync(id);
+            if (user == null)
+                return false;
+
+            // Get admin role
+            var adminRole = await _roleRepository.GetByNameAsync("admin");
+            if (adminRole == null)
+                throw new Exception("Admin role does not exist in the database.");
+
+            // Update user role
+            user.Roles.Add(adminRole);
+
+            await _userRepository.UpdateAsync(user);
+
+            return true;
+        }
+
         public async Task<UpdateUserResult> UpdateAsync(UpdateUserDto updateUserDto)
         {
             //Validate the user exists

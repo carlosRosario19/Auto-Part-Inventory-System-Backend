@@ -11,5 +11,6 @@ namespace AutoPartInventorySystem.Services.Contracts
         Task<PagedResult<UserDTO>> GetAllUsersAsync(int pageNumber, int pageSize);
         Task<UserDTO?> GetUserByIdAsync(int id);
         Task<bool> DeleteAsync(int id);
+        Task<bool> PromoteToAdminAsync(int id);
     }
 }

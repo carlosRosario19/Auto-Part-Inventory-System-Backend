@@ -107,5 +107,18 @@ namespace AutoPartInventorySystem.Controllers
 
             return NoContent();
         }
+
+        [HttpPatch("promote/{id}")]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> PromoteToAdmin([FromRoute] int id)
+        {
+            var success = await _userService.PromoteToAdminAsync(id);
+
+            if (!success)
+                return NotFound(new { message = "User not found." });
+
+            return NoContent();
+        }
+
     }
 }
