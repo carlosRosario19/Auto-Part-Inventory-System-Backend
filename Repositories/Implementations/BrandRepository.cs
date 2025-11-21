@@ -40,6 +40,13 @@ namespace AutoPartInventorySystem.Repositories.Implementations
                 .FirstOrDefaultAsync(b => b.BrandId == id);
         }
 
+        public async Task<List<Brand>> GetByIdsAsync(List<int> ids)
+        {
+            return await _dbContext.Brands
+                .Where(b => ids.Contains(b.BrandId))
+                .ToListAsync();
+        }
+
         public async Task<Brand?> GetByNameAsync(string name)
         {
             return await _dbContext.Brands

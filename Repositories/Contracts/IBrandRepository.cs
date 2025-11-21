@@ -10,5 +10,6 @@ namespace AutoPartInventorySystem.Repositories.Contracts
         Task AddAsync(Brand brand);
         Task UpdateAsync(Brand brand);
         Task DeleteAsync(Brand brand);
+        Task<List<Brand>> GetByIdsAsync(List<int> ids);
     }
 }
