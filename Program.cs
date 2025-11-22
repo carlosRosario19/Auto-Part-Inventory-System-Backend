@@ -155,7 +155,7 @@ namespace AutoPartInventorySystem
                 cfg => { },                  // optional, empty lambda is fine
                 typeof(UserProfile)          // assembly where your profile is located
             );
-
+            builder.Services.AddHttpContextAccessor();
             // Add services
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -170,6 +170,7 @@ namespace AutoPartInventorySystem
             builder.Services.AddScoped<IBrandRepository, BrandRepository>();
             builder.Services.AddScoped<IAutoPartRepository, AutoPartRepository>();
             builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+            builder.Services.AddScoped<ILogRepository, LogDynamoDbRepository>();
 
             // Add Utils
             builder.Services.AddSingleton<PasswordHasher>();
