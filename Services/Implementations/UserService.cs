@@ -16,22 +16,28 @@ namespace AutoPartInventorySystem.Services.Implementations
     {
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
+        private readonly ILogRepository _logRepository;
         private readonly IConfiguration _configuration;
         private readonly PasswordHasher _passwordHasher;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public UserService(
             IUserRepository userRepository,
             IRoleRepository roleRepository,
-            IConfiguration configuration, 
+            ILogRepository logRepository,
+            IConfiguration configuration,
             PasswordHasher passwordHasher,
-            IMapper mapper)
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
+            _logRepository = logRepository;
             _configuration = configuration;
             _passwordHasher = passwordHasher;
             _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<bool> AddAsync(AddUserDto addUserDto)
@@ -57,6 +63,22 @@ namespace AutoPartInventorySystem.Services.Implementations
             // 4) Save user
             await _userRepository.AddAsync(user);
 
+            // Log creation
+            await _logRepository.AddLogAsync(new Log
+            {
+                PK = $"User#{user.Id}",
+                SK = DateTime.UtcNow.ToString("o"),
+                Username = GetUsername(),
+                Action = "Created",
+                EntityType = "User",
+                EntityId = user.Id,
+                Metadata = new Dictionary<string, object>
+            {
+                { "Email", user.Email },
+                { "Roles", user.Roles.Select(r => r.Name).ToList() }
+            }
+            });
+
             return true;
         }
 
@@ -70,6 +92,21 @@ namespace AutoPartInventorySystem.Services.Implementations
 
             // Proceed to delete
             await _userRepository.DeleteAsync(user);
+
+            await _logRepository.AddLogAsync(new Log
+            {
+                PK = $"User#{id}",
+                SK = DateTime.UtcNow.ToString("o"),
+                Username = GetUsername(),
+                Action = "Deleted",
+                EntityType = "User",
+                EntityId = id,
+                Metadata = new Dictionary<string, object>
+            {
+                { "Email", user.Email },
+                { "Roles", user.Roles.Select(r => r.Name).ToList() }
+            }
+            });
 
             return true;
         }
@@ -185,7 +222,37 @@ namespace AutoPartInventorySystem.Services.Implementations
             // 5) Update the user
             await _userRepository.UpdateAsync(user);
 
+            // Log update
+            await _logRepository.AddLogAsync(new Log
+            {
+                PK = $"User#{user.Id}",
+                SK = DateTime.UtcNow.ToString("o"),
+                Username = GetUsername(),
+                Action = "Updated",
+                EntityType = "User",
+                EntityId = user.Id,
+                Metadata = new Dictionary<string, object>
+                {
+                    { "Email", user.Email },
+                    { "Roles", user.Roles.Select(r => r.Name).ToList() }
+                }
+            });
+
             return UpdateUserResult.Success;
+        }
+
+        private string GetUsername()
+        {
+            var httpContext = _httpContextAccessor.HttpContext;
+
+            if (httpContext == null || httpContext.User.Identity == null || !httpContext.User.Identity.IsAuthenticated)
+                return "Unknown";
+
+            // Try claims in order of relevance based on your JWT
+            return httpContext.User.FindFirst("email")?.Value
+                   ?? httpContext.User.FindFirst(JwtRegisteredClaimNames.Email)?.Value
+                   ?? httpContext.User.FindFirst(ClaimTypes.Email)?.Value
+                   ?? "Unknown";
         }
     }
 }

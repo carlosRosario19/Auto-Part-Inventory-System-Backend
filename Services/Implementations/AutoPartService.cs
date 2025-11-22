@@ -4,6 +4,8 @@ using AutoPartInventorySystem.Models;
 using AutoPartInventorySystem.Repositories.Contracts;
 using AutoPartInventorySystem.Services.Contracts;
 using AutoPartInventorySystem.Util;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace AutoPartInventorySystem.Services.Implementations
 {
@@ -13,26 +15,32 @@ namespace AutoPartInventorySystem.Services.Implementations
         private readonly ICategoryRepository _categoryRepository;
         private readonly IBrandRepository _brandRepository;
         private readonly IVehicleRepository _vehicleRepository;
+        private readonly ILogRepository _logRepository;
         private readonly IStorageService _storageService;
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AutoPartService(
             IAutoPartRepository autoPartRepository,
             ICategoryRepository categoryRepository,
             IBrandRepository brandRepository,
             IVehicleRepository vehicleRepository,
+            ILogRepository logRepository,
             IStorageService storageService,
             IConfiguration configuration,
-            IMapper mapper)
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor)
         {
             _autoPartRepository = autoPartRepository;
             _categoryRepository = categoryRepository;
             _brandRepository = brandRepository;
             _vehicleRepository = vehicleRepository;
+            _logRepository = logRepository;
             _storageService = storageService;
             _configuration = configuration;
             _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor;
         }
 
 
@@ -69,6 +77,25 @@ namespace AutoPartInventorySystem.Services.Implementations
             autoPart.Brands = brands;
 
             await _autoPartRepository.AddAsync(autoPart);
+
+            // Log action
+            await _logRepository.AddLogAsync(new Log
+            {
+                PK = $"AutoPart#{autoPart.AutoPartId}",
+                SK = DateTime.UtcNow.ToString("o"),
+                Username = GetUsername(),
+                Action = "Created",
+                EntityType = "AutoPart",
+                EntityId = autoPart.AutoPartId,
+                Metadata = new Dictionary<string, object>
+            {
+                { "Name", autoPart.Name },
+                { "BrandIds", dto.BrandIds },
+                { "CategoryId", dto.CategoryId },
+                { "ImageUrl", autoPart.ImageUrl }
+            }
+            });
+
             return true;
         }
         // ------------------------------------------------------------
@@ -89,6 +116,23 @@ namespace AutoPartInventorySystem.Services.Implementations
             }
 
             await _autoPartRepository.DeleteAsync(autoPart);
+
+            // Log delete
+            await _logRepository.AddLogAsync(new Log
+            {
+                PK = $"AutoPart#{id}",
+                SK = DateTime.UtcNow.ToString("o"),
+                Username = GetUsername(),
+                Action = "Deleted",
+                EntityType = "AutoPart",
+                EntityId = id,
+                Metadata = new Dictionary<string, object>
+            {
+                { "Name", autoPart.Name },
+                { "ImageUrl", autoPart.ImageUrl }
+            }
+            });
+
             return true;
         }
 
@@ -176,6 +220,14 @@ namespace AutoPartInventorySystem.Services.Implementations
             if (autoPart == null)
                 return false;
 
+            var oldMetadata = new Dictionary<string, object>
+            {
+                { "Name", autoPart.Name },
+                { "ImageUrl", autoPart.ImageUrl },
+                { "BrandIds", autoPart.Brands.Select(b => b.BrandId).ToList() },
+                { "CategoryId", autoPart.CategoryId }
+            };
+
             // Validate category
             var category = await _categoryRepository.GetByIdAsync(dto.CategoryId);
             if (category == null)
@@ -216,6 +268,28 @@ namespace AutoPartInventorySystem.Services.Implementations
             }
 
             await _autoPartRepository.UpdateAsync(autoPart);
+
+            // Log update
+            await _logRepository.AddLogAsync(new Log
+            {
+                PK = $"AutoPart#{autoPart.AutoPartId}",
+                SK = DateTime.UtcNow.ToString("o"),
+                Username = GetUsername(),
+                Action = "Updated",
+                EntityType = "AutoPart",
+                EntityId = autoPart.AutoPartId,
+                Metadata = new Dictionary<string, object>
+            {
+                { "Before", oldMetadata },
+                { "After", new {
+                    autoPart.Name,
+                    autoPart.ImageUrl,
+                    BrandIds = autoPart.Brands.Select(b => b.BrandId).ToList(),
+                    autoPart.CategoryId
+                }}
+            }
+            });
+
             return true;
         }
 
@@ -225,6 +299,20 @@ namespace AutoPartInventorySystem.Services.Implementations
         private string ExtractKeyFromUrl(string url)
         {
             return url.Substring(url.IndexOf(".com/") + 5);
+        }
+
+        private string GetUsername()
+        {
+            var httpContext = _httpContextAccessor.HttpContext;
+
+            if (httpContext == null || httpContext.User.Identity == null || !httpContext.User.Identity.IsAuthenticated)
+                return "Unknown";
+
+            // Try claims in order of relevance based on your JWT
+            return httpContext.User.FindFirst("email")?.Value
+                   ?? httpContext.User.FindFirst(JwtRegisteredClaimNames.Email)?.Value
+                   ?? httpContext.User.FindFirst(ClaimTypes.Email)?.Value
+                   ?? "Unknown";
         }
     }
 }
