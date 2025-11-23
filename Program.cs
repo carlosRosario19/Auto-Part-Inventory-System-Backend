@@ -38,21 +38,21 @@ namespace AutoPartInventorySystem
             // ---------------------------------------------------
             // Load Parameter Store *only in Production*
             // ---------------------------------------------------
-            if (builder.Environment.IsProduction())
+            var isEcs = Environment.GetEnvironmentVariable("ECS") == "true";
+
+            if (isEcs)
             {
                 builder.Configuration.AddSystemsManager(
                     "/auto_part_inventory_api",
                     new AWSOptions
                     {
                         Region = RegionEndpoint.USEast1
-                    }
-                );
-
-                Console.WriteLine(">>> Environment: Production");
-                Console.WriteLine(">>> DefaultConnection: " + builder.Configuration.GetConnectionString("DefaultConnection"));
+                    });
+                Console.WriteLine(">>> Running on ECS ? Using SSM Parameter Store");
             }
             else
             {
+                Console.WriteLine(">>> Running locally ? Using appsettings.Development.json");
                 var awsOptions = builder.Configuration.GetAWSOptions();
                 builder.Services.AddDefaultAWSOptions(awsOptions);
             }

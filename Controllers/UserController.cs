@@ -18,8 +18,7 @@ namespace AutoPartInventorySystem.Controllers
             _userService = userService;
         }
 
-        [HttpPost]
-        [Authorize(Roles = "admin")]
+        [HttpPost("sign-up")]
         public async Task<IActionResult> AddStaff([FromBody] AddUserDto dto)
         {
             if (!ModelState.IsValid)
