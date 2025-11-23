@@ -72,7 +72,7 @@ namespace AutoPartInventorySystem.Controllers
         }
 
         // PATCH: api/category
-        [HttpPatch("update-image")]
+        [HttpPatch("image")]
         [Authorize(Roles = "staff,admin")]
         public async Task<IActionResult> UpdateImage([FromForm] UpdateCategoryImageDto dto)
         {

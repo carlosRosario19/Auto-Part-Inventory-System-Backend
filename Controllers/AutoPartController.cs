@@ -21,7 +21,7 @@ namespace AutoPartInventorySystem.Controllers
         // CREATE
         // ------------------------------------------------------------
         [HttpPost]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "staff,admin")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Add([FromForm] AddAutoPartDto dto)
         {
@@ -60,7 +60,7 @@ namespace AutoPartInventorySystem.Controllers
         // UPDATE
         // ------------------------------------------------------------
         [HttpPut]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "staff,admin")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Update([FromForm] UpdateAutoPartDto dto)
         {
@@ -75,7 +75,7 @@ namespace AutoPartInventorySystem.Controllers
         // DELETE
         // ------------------------------------------------------------
         [HttpDelete("{id:int}")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "staff,admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _autoPartService.DeleteAsync(id);
@@ -87,6 +87,7 @@ namespace AutoPartInventorySystem.Controllers
         }
 
         [HttpPatch("link-vehicle")]
+        [Authorize(Roles = "staff,admin")]
         public async Task<IActionResult> LinkVehicle([FromBody] LinkPartWithVehicleDto dto)
         {
             var result = await _autoPartService.LinkVehicleAsync(dto);
